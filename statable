@@ -1,0 +1,115 @@
+#!/bin/bash
+
+usage='Find files that can and cannot be `stat`ed in a directory tree
+
+statable [-h|--help] [-a|--access] [-s|--stripe] [DIR [TIMEOUT [NPROC]]]
+    -h|--help: print this help message
+    -a|--access: attempt to access files rather than just `stat`ing
+    -s|--stripe: print lmm_stripe_offset for un`stat`able files on a
+                 Lustre filesystems; only works if `lfs` is installed
+    DIR: directory to check for dead files (default this directory)
+    TIMEOUT: `stat` timeout, in seconds (default 15.0s); can be suffixed
+             with "m" for minutes, "h" for hours, or "d" for days
+    NPROC:  number of `stat` processes to run in prallel (default 16)
+
+This script recursively searches DIR, running `stat` on each file or
+directory therein. If running `stat` on a file or directory hangs for
+more than TIMEOUT, the file or directory is considered un`stat`able.
+
+These un`stat`able files can cause serious problems and annoying hangs,
+and finding them is a challenge--hence this script.
+
+The names of good files and directories are printed to stdout and the
+names of un`stat`able files and directories to stderr, one per line.
+Directory names are suffixed with a "/". If "-a|--access" is specified,
+files that can be `stat`ed but cannot be accessed will be classified as
+"bad" files along with the un`stat`able ones. If "-s|--stripe" is
+specified and the `lfs` command is available, the lmm_stripe_offset
+will be printed, followed by a colon, before the name of each
+un`stat`able file (e.g. "12: my/file").
+
+In order to run in parallel (strongly recommended), GNU Parallel must
+be installed and you need to have run `parallel --citation`; if this
+has not been done, statable will silently run serially.
+
+Example usage--run `statable` on your compute directory with a timeout
+of 5.5 seconds, sending good files to good_files.txt and un`stat`able
+files to bad_files.txt:
+
+    statable ~/compute/ 5.5 > good_files.txt 2> bad_files.txt
+
+Note the trailing slash--it is required for symbolic links.'
+
+# Exit with an error message
+error_exit() {
+    # $1: exit code
+    # $2: message
+    echo "ERROR: $2"
+    echo
+    echo "$usage"
+    echo
+    echo "ERROR: $2"
+    exit $1
+}
+
+# Parse
+export access=false
+export getstripe=false
+while : ; do
+    case "$1" in
+        -h|--help)   echo "$usage"; exit;;
+        -a|--access) access=true;;
+        -s|--stripe) getstripe=true;;
+        *)           break;;
+    esac
+    shift
+done
+dirname="${1:-.}"
+export statable_timeout="${2:-15}"
+nprocs="${3:-16}"
+[[ -d "$dirname" ]] || error_exit 2 "DIRNAME must be a directory (did you forget a trailing '/'?)"
+[[ "$statable_timeout" =~ ^[0-9]*([0-9]\.|\.[0-9]|[0-9])[0-9]*[smhd]?$ ]] || \
+        error_exit 2 "TIMEOUT must be a number, optionally suffixed with s, m, h, or d"
+[[ "$nprocs" =~ ^0*[1-9][0-9]*$ ]] || error_exit 2 "NPROC must be a valid, positive integer"
+
+# Wrap an arbitrary command in timeout (TIMEOUT seconds), returning the exit code without printing anything
+succeeds_before_timeout() {
+    # $@: the command to be run
+    timeout -k 0.000001 $statable_timeout "$@" &>/dev/null &
+    wait $! &>/dev/null
+    return $?
+}
+export -f succeeds_before_timeout
+
+# Print a file's lmm_stripe_offset followed by a ':' then the filename
+echo_lfs_stripe_index() {
+    # $1: the name of the file
+
+    # get only the lfs lmm_stripe_offset, aka stripe-index
+    if [[ -x `which lfs 2>/dev/null` ]]; then
+        lfs_output=$(/usr/bin/lfs getstripe --stripe-index $1)
+        echo -n "$lfs_output: "
+    fi
+}
+export -f echo_lfs_stripe_index
+
+# Print filename or dirname/ to stdout if `stat` on the file returns within TIMEOUT seconds, else to stderr
+_statable() {
+    # $1: the name of the file
+    if succeeds_before_timeout stat --printf '' "$1" \
+       && ([[ $access != true ]] || succeeds_before_timeout head -c 1 "$1" \
+                                 || succeeds_before_timeout test -d "$1"); then
+        echo "$1"
+    else
+        [[ $getstripe == true ]] && echo_lfs_stripe_index "$1" >&2 || echo "$1" >&2
+    fi
+}
+export -f _statable
+
+# Run
+if [[ -f ~/.parallel/will-cite && -x `which parallel 2>/dev/null` ]]; then
+    find "$dirname" -type d -printf '%p/\n' -or -print | parallel --jobs $nprocs _statable
+else
+    find "$dirname" -type d -exec bash -c '_statable "$0"' {}/ \; \
+                -or -type f -exec bash -c '_statable "$0"' {}  \;
+fi
