@@ -28,6 +28,8 @@ specified and the `lfs` command is available, the lmm_stripe_offset
 will be printed, followed by a colon, before the name of each
 un`stat`able file (e.g. "12: my/file").
 
+If DIR is broken, `statable` will hang indefinitely.
+
 In order to run in parallel (strongly recommended), GNU Parallel must
 be installed and you need to have run `parallel --citation`; if this
 has not been done, statable will silently run serially.
