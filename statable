@@ -92,7 +92,7 @@ echo_lfs_stripe_index() {
     # get the lfs lmm_stripe_offset, aka stripe-index, and print it then the name of the file
     if [[ -x `which lfs 2>/dev/null` ]]; then
         lfs_output="$(/usr/bin/lfs getstripe --stripe-index "$1")"
-        echo -n "$lfs_output:$1"
+        echo "$lfs_output:$1"
     fi
 }
 export -f echo_lfs_stripe_index
