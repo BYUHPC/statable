@@ -26,7 +26,7 @@ files that can be `stat`ed but cannot be accessed will be classified as
 "bad" files along with the un`stat`able ones. If "-s|--stripe" is
 specified and the `lfs` command is available, the lmm_stripe_offset
 will be printed, followed by a colon, before the name of each
-un`stat`able file (e.g. "12: my/file").
+un`stat`able file (e.g. "12:my/file").
 
 If DIR is broken, `statable` may hang indefinitely. Any files that
 cannot be `stat`ed may result in unkillable `stat` processes that
@@ -89,10 +89,10 @@ export -f succeeds_before_timeout
 echo_lfs_stripe_index() {
     # $1: the name of the file
 
-    # get only the lfs lmm_stripe_offset, aka stripe-index
+    # get the lfs lmm_stripe_offset, aka stripe-index, and print it then the name of the file
     if [[ -x `which lfs 2>/dev/null` ]]; then
-        lfs_output=$(/usr/bin/lfs getstripe --stripe-index $1)
-        echo -n "$lfs_output: "
+        lfs_output="$(/usr/bin/lfs getstripe --stripe-index "$1")"
+        echo -n "$lfs_output:$1"
     fi
 }
 export -f echo_lfs_stripe_index
