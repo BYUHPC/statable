@@ -6,12 +6,12 @@ If you have a broken filesystem, it can be hard to find out which files can stil
 statable /mydata 1>goodfiles.txt 2>badfiles.txt
 ```
 
-...and each file for which `stat` fails to return for 15 seconds will be put in `badfiles.txt`.
+...and each file for which `stat` fails to return for 10 seconds will be put in `badfiles.txt`.
 
-To access the files in addition to `stat`ing them (performing a more thorough check at the expense of reduced speed), using 64 processes rather than the default 16, a timeout of 7.5 seconds rather than 15, and printing the results to the terminal, you could use:
+To access the files in addition to `stat`ing them (performing a more thorough check at the expense of reduced speed), using 200 processes rather than the default 64, a timeout of 7.5 seconds rather than 10, and printing the inaccessible files to the terminal, you could use:
 
 ```bash
-statable --access /mydata 7.5 64 1>/dev/null
+statable --access /mydata 7.5 200 1>/dev/null
 ```
 
 Use `statable --help` for a more thorough help message.

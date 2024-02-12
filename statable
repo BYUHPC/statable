@@ -1,7 +1,7 @@
 #!/bin/bash
 
 DEFAULT_NPROC=64
-DEFAULT_TIMEOUT=5.0
+DEFAULT_TIMEOUT=10.0
 
 usage='Find files that can and cannot be `stat`ed in a directory tree
 
@@ -11,9 +11,9 @@ statable [-h|--help] [-a|--access] [-s|--stripe] [DIR [TIMEOUT [NPROC]]]
     -s|--stripe: print lmm_stripe_offset for un`stat`able files on a
                  Lustre filesystems; only works if `lfs` is installed
     DIR: directory to check for dead files (default this directory)
-    TIMEOUT: `stat` timeout, in seconds (default 5.0s); can be suffixed
+    TIMEOUT: `stat` timeout, in seconds (default 10s); can be suffixed
              with "m" for minutes, "h" for hours, or "d" for days
-    NPROC:  number of `stat` processes to run in prallel (default 32)
+    NPROC:  number of `stat` processes to run in prallel (default 64)
 
 This script recursively searches DIR, running `stat` on each file or
 directory therein. If running `stat` on a file or directory hangs for
