@@ -1,5 +1,8 @@
 #!/bin/bash
 
+DEFAULT_NPROC=64
+DEFAULT_TIMEOUT=5.0
+
 usage='Find files that can and cannot be `stat`ed in a directory tree
 
 statable [-h|--help] [-a|--access] [-s|--stripe] [DIR [TIMEOUT [NPROC]]]
@@ -8,9 +11,9 @@ statable [-h|--help] [-a|--access] [-s|--stripe] [DIR [TIMEOUT [NPROC]]]
     -s|--stripe: print lmm_stripe_offset for un`stat`able files on a
                  Lustre filesystems; only works if `lfs` is installed
     DIR: directory to check for dead files (default this directory)
-    TIMEOUT: `stat` timeout, in seconds (default 15.0s); can be suffixed
+    TIMEOUT: `stat` timeout, in seconds (default 5.0s); can be suffixed
              with "m" for minutes, "h" for hours, or "d" for days
-    NPROC:  number of `stat` processes to run in prallel (default 16)
+    NPROC:  number of `stat` processes to run in prallel (default 32)
 
 This script recursively searches DIR, running `stat` on each file or
 directory therein. If running `stat` on a file or directory hangs for
@@ -69,8 +72,8 @@ while : ; do
     shift
 done
 dirname="${1:-.}"
-export statable_timeout="${2:-15}"
-nprocs="${3:-16}"
+export statable_timeout="${2:-$DEFAULT_TIMEOUT}"
+nprocs="${3:-$DEFAULT_NPROC}"
 [[ -d "$dirname" ]] || error_exit 2 "DIRNAME must be a directory (did you forget a trailing '/'?)"
 [[ "$statable_timeout" =~ ^[0-9]*([0-9]\.|\.[0-9]|[0-9])[0-9]*[smhd]?$ ]] || \
         error_exit 2 "TIMEOUT must be a number, optionally suffixed with s, m, h, or d"
